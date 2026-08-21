@@ -1,3 +1,9 @@
+_this project is made by csalamit_
+
+## Goal of the project
+
+the goal of the project is to create a small AMM with two tokens and an nft 
+
 ## Key Concepts
 
 - **ERC-20** → Fungible tokens
