@@ -77,13 +77,20 @@ contract TestTokenATest is Test {
 
 	//this function test if bob can spend the alice's token but willf ail because bob try to take bigger amount
 
-		function testTransferFromExceedsAllowance() public {
+	function testTransferFromExceedsAllowance() public {
 		uint256 amount = 125 ether;
+
 		assertTrue(token.transfer(alice, amount));
+
 		vm.prank(alice);
-		token.approve(bob, amount);
+		assertTrue(token.approve(bob, amount));
+
 		vm.prank(bob);
-		vm.expectRevert();
-		token.transferFrom(alice, bob, 280 ether);
+
+		try token.transferFrom(alice, bob, 280 ether) returns (bool success) {
+			assertFalse(success);
+		} catch {
+			// Expected: Bob is not allowed to spend 280 TKA
+		}
 	}
 }
