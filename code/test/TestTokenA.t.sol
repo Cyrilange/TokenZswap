@@ -93,4 +93,27 @@ contract TestTokenATest is Test {
 			// Expected: Bob is not allowed to spend 280 TKA
 		}
 	}
+
+	    // Test that a user can claim tokens from the faucet
+    function testFaucet() public {
+        uint256 faucetAmount = token.FAUCET_AMOUNT();
+		vm.warp(1 days);
+        vm.prank(alice);
+        token.faucet();
+
+        assertEq(token.balanceOf(alice), faucetAmount);
+    }
+
+    // Test that a user cannot claim twice before the cooldown expires
+    function testFaucetCooldown() public {
+		vm.warp(1 days);
+        vm.startPrank(alice);
+
+        token.faucet();
+
+        vm.expectRevert("Faucet cooldown");
+        token.faucet();
+
+        vm.stopPrank();
+    }
 }

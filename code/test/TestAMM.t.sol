@@ -24,4 +24,28 @@ contract TestAMM is Test {
         assertEq(address(amm.tokenA()), address(tokenA));
         assertEq(address(amm.tokenB()), address(tokenB));
     }
+    
+    function testAddLiquidityFirstDeposit() public {
+    uint256 amountA = 1_000 ether;
+    uint256 amountB = 1_000 ether;
+
+    // Give the AMM permission to take the tokens.
+    tokenA.approve(address(amm), amountA);
+    tokenB.approve(address(amm), amountB);
+
+    // Add liquidity.
+    amm.addLiquidity(amountA, amountB);
+
+    // Check the pool reserves.
+    assertEq(amm.reserveA(), amountA);
+    assertEq(amm.reserveB(), amountB);
+
+    // 1000 * 1000 = 1,000,000
+    // sqrt(1,000,000) = 1000 LP tokens.
+    assertEq(amm.lpToken().balanceOf(address(this)), 1_000 ether);
+
+    // Check that the AMM actually received the tokens.
+    assertEq(tokenA.balanceOf(address(amm)), amountA);
+    assertEq(tokenB.balanceOf(address(amm)), amountB);
+}
 }
