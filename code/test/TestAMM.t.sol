@@ -65,8 +65,15 @@ contract TestAMM is Test {
         amm.addLiquidity(firstAmountA, firstAmountB);
 
         // Give Bob enough tokens for his deposit.
-        tokenA.transfer(bob, secondAmountA);
-        tokenB.transfer(bob, secondAmountB);
+        require(
+            tokenA.transfer(bob, secondAmountA),
+            "Token A transfer failed"
+        );
+
+        require(
+            tokenB.transfer(bob, secondAmountB),
+            "Token B transfer failed"
+        );
 
         // Bob approves the AMM.
         vm.startPrank(bob);
@@ -118,8 +125,6 @@ contract TestAMM is Test {
         // Give the user enough tokens.
         address bob = makeAddr("bob");
 
-        tokenA.transfer(bob, secondAmountA);
-        tokenB.transfer(bob, secondAmountB);
 
         vm.startPrank(bob);
 
@@ -185,29 +190,133 @@ contract TestAMM is Test {
         );
     }
 
-    /*
+function testSwapAForB() public {
+    address bob = makeAddr("bob");
 
-    to check the swap :
+    // Create a pool: 1000 TKA / 1000 TKB
+    uint256 amountA = 1_000 ether;
+    uint256 amountB = 1_000 ether;
 
-    create a pool 1000 TKA / 1000 TKB
-    give  TKA to Bob
-    Bob approuve AMM
-    Bob exchange 100 TKA
-    check how many  TKB he received
-    check reserves
-    check  LP tokens are not modify
-    */
+    // Bob will swap 100 TKA.
+    uint256 amountToSwap = 100 ether;
 
-    function testSwapAForB() public {
+    // Add the initial liquidity.
+    tokenA.approve(address(amm), amountA);
+    tokenB.approve(address(amm), amountB);
 
-        // create a pool 1000 TKA / 1000 TKB
-        
-        //   give  TKA to Bob
-        //   Bob approuve AMM
-        //   Bob exchange 100 TKA
-        //   check how many  TKB he received
-        //  check reserves
-        //   check  LP tokens are not modify
-        
-    }
+    amm.addLiquidity(amountA, amountB);
+
+    // Give TKA to Bob.
+    require(
+        tokenA.transfer(bob, amountToSwap),
+        "Token A transfer failed"
+    );
+
+    // Bob approves the AMM.
+    vm.startPrank(bob);
+
+    tokenA.approve(address(amm), amountToSwap);
+
+    // Bob swaps 100 TKA for TKB.
+    uint256 amountBReceived = amm.swapAForB(amountToSwap);
+
+    vm.stopPrank();
+
+    // Check how many TKB Bob received.
+    assertEq(
+        tokenB.balanceOf(bob),
+        amountBReceived
+    );
+
+    // Check the pool reserves.
+    assertEq(
+        amm.reserveA(),
+        1_100 ether
+    );
+
+    assertEq(
+        amm.reserveB(),
+        1_000 ether - amountBReceived
+    );
+}
+
+function testSwapBForA() public {
+
+    address bob = makeAddr("bob");
+
+    // Create a pool: 1000 TKA / 1000 TKB
+    uint256 amountA = 1_000 ether;
+    uint256 amountB = 1_000 ether;
+
+    // Bob will swap 100 TKB.
+    uint256 amountToSwap = 100 ether;
+
+    // Add the initial liquidity.
+    tokenA.approve(address(amm), amountA);
+    tokenB.approve(address(amm), amountB);
+
+    amm.addLiquidity(amountA, amountB);
+
+    // Give TKB to Bob.
+    require(
+        tokenB.transfer(bob, amountToSwap),
+        "Token B transfer failed"
+    );
+
+    // Bob approves the AMM.
+    vm.startPrank(bob);
+
+    tokenB.approve(address(amm), amountToSwap);
+
+    // Bob swaps 100 TKB for TKA.
+    uint256 amountAReceived = amm.swapBForA(amountToSwap);
+
+    vm.stopPrank();
+
+    // Check how many TKA Bob received.
+    assertEq(
+        tokenA.balanceOf(bob),
+        amountAReceived
+    );
+
+    // Check the pool reserves.
+    assertEq( amm.reserveB(), 1_100 ether );
+    assertEq( amm.reserveA(), 1_000 ether - amountAReceived );
+}
+
+function testSwapAForBAppliesFee() public {
+    address bob = makeAddr("bob");
+
+    uint256 amountA = 1_000 ether;
+    uint256 amountB = 1_000 ether;
+    uint256 amountToSwap = 100 ether;
+
+    // Add initial liquidity.
+    tokenA.approve(address(amm), amountA);
+    tokenB.approve(address(amm), amountB);
+
+    amm.addLiquidity(amountA, amountB);
+
+    // Give TKA to Bob.
+    require(
+        tokenA.transfer(bob, amountToSwap),
+        "Token A transfer failed"
+    );
+
+    // Calculate the expected output using the 3% fee.
+    uint256 amountAInWithFee = amountToSwap * (100 - 3) / 100;
+
+    uint256 expectedAmountBOut = (amountAInWithFee * amountB) / (amountA + amountAInWithFee);
+
+    vm.startPrank(bob);
+
+    tokenA.approve(address(amm), amountToSwap);
+
+    uint256 actualAmountBOut = amm.swapAForB(amountToSwap);
+
+    vm.stopPrank();
+
+    // The actual result must match the formula including the 3% fee.
+    assertEq(actualAmountBOut, expectedAmountBOut);
+}
 }

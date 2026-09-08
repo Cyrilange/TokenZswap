@@ -2,12 +2,27 @@
 pragma solidity ^0.8.33;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {LPToken} from "./LPToken.sol";
 
-contract AMM {
+contract AMM is IERC721Receiver {
+    struct Listing {
+        address seller;
+        address nftContract;
+        uint256 tokenId;
+        uint256 price;
+        address paymentToken;
+        bool active;
+    }
+
+    uint256 public nextListingId;
+    mapping(uint256 => Listing) public listings;
+
     IERC20 public tokenA;
     IERC20 public tokenB;
     LPToken public lpToken;
+    IERC721 public nft;
 
 	uint256 public reserveA;
 	uint256 public reserveB;
@@ -129,9 +144,7 @@ contract AMM {
     // Constant-product formula:
     // amountBOut = (amountAInWithFee * reserveB)
     //              / (reserveA + amountAInWithFee)
-    amountBOut =
-        (amountAInWithFee * reserveB)
-        / (reserveA + amountAInWithFee);
+    amountBOut = (amountAInWithFee * reserveB) / (reserveA + amountAInWithFee);
 
     require(amountBOut > 0, "Insufficient output amount");
     require(amountBOut < reserveB, "Insufficient Token B liquidity");
@@ -184,5 +197,9 @@ contract AMM {
             "Token A transfer failed"
         );
     }
+
+    function onERC721Received( address, address, uint256, bytes calldata ) external pure returns (bytes4) {
+    return IERC721Receiver.onERC721Received.selector;
+}
 
 }
